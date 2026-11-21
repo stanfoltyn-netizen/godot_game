@@ -246,6 +246,48 @@ func noise_mat(c1: Color, c2: Color, freq: float, tile: float, rough := 0.95) ->
 	return m
 
 
+# Optional real scanned PBR material from Poly Haven. The game remains playable
+# without downloaded assets; these files replace the procedural fallback when present.
+func apply_polyhaven_asphalt(mat: StandardMaterial3D) -> void:
+	var root := "res://assets/polyhaven/asphalt_track/"
+	var albedo_path := root + "asphalt_track_diff_2k.jpg"
+	var normal_path := root + "asphalt_track_nor_gl_2k.jpg"
+	var rough_path := root + "asphalt_track_rough_2k.jpg"
+	var ao_path := root + "asphalt_track_ao_2k.jpg"
+	if ResourceLoader.exists(albedo_path):
+		mat.albedo_texture = load(albedo_path)
+		mat.albedo_color = Color(0.82, 0.82, 0.82)
+		mat.uv1_triplanar = true
+		mat.uv1_world_triplanar = true
+		mat.uv1_scale = Vector3(0.5, 0.5, 0.5)
+	if ResourceLoader.exists(normal_path):
+		mat.normal_enabled = true
+		mat.normal_texture = load(normal_path)
+		mat.normal_scale = 0.7
+	if ResourceLoader.exists(rough_path):
+		mat.roughness_texture = load(rough_path)
+		mat.roughness = 1.0
+	if ResourceLoader.exists(ao_path):
+		mat.ao_enabled = true
+		mat.ao_texture = load(ao_path)
+		mat.ao_light_affect = 0.35
+
+
+func apply_polyhaven_hdri(env: Environment) -> void:
+	# Optional 2K HDRI: put the downloaded file at this path in your Godot project.
+	var hdri_path := "res://assets/polyhaven/sunset_jhbcentral_2k.hdr"
+	if not ResourceLoader.exists(hdri_path):
+		return
+	var panorama := PanoramaSkyMaterial.new()
+	panorama.panorama = load(hdri_path)
+	var hdri_sky := Sky.new()
+	hdri_sky.sky_material = panorama
+	env.background_mode = Environment.BG_SKY
+	env.sky = hdri_sky
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_BG
+
+
 func mesh_box(parent: Node, size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	var mesh := BoxMesh.new()
 	mesh.size = size
@@ -362,6 +404,7 @@ func build_environment() -> void:
 	env.adjustment_contrast = 1.16
 	env.adjustment_saturation = 1.22
 	env.adjustment_brightness = 1.02
+	apply_polyhaven_hdri(env)
 	env_ref = env
 	sky_ref = sky_mat
 	var we := WorldEnvironment.new()
@@ -402,6 +445,7 @@ func build_world() -> void:
 
 func build_road() -> void:
 	var asphalt := noise_mat(Color(0.045, 0.05, 0.058), Color(0.16, 0.17, 0.18), 0.12, 0.18, 0.82)
+	apply_polyhaven_asphalt(asphalt)
 	asphalt_ref = asphalt
 	var white := make_mat(Color(0.95, 0.95, 0.95), 0.8)
 	var red := make_mat(Color(0.85, 0.08, 0.08), 0.8)

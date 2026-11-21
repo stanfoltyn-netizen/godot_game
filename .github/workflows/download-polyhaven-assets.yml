@@ -1,0 +1,53 @@
+name: Download Poly Haven assets
+
+on:
+  push:
+    branches:
+      - graphics-upgrade-integration
+    paths:
+      - '.github/workflows/download-polyhaven-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  download-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out graphics upgrade branch
+        uses: actions/checkout@v4
+        with:
+          ref: graphics-upgrade-integration
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download CC0 Poly Haven textures and HDRI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/polyhaven/asphalt_track
+          base='https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_track'
+          curl -fL --retry 3 "$base/asphalt_track_diff_2k.jpg" -o assets/polyhaven/asphalt_track/asphalt_track_diff_2k.jpg
+          curl -fL --retry 3 "$base/asphalt_track_nor_gl_2k.jpg" -o assets/polyhaven/asphalt_track/asphalt_track_nor_gl_2k.jpg
+          curl -fL --retry 3 "$base/asphalt_track_rough_2k.jpg" -o assets/polyhaven/asphalt_track/asphalt_track_rough_2k.jpg
+          curl -fL --retry 3 "$base/asphalt_track_ao_2k.jpg" -o assets/polyhaven/asphalt_track/asphalt_track_ao_2k.jpg
+          curl -fL --retry 3 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/sunset_jhbcentral_2k.hdr' -o assets/polyhaven/sunset_jhbcentral_2k.hdr
+          test -s assets/polyhaven/asphalt_track/asphalt_track_diff_2k.jpg
+          test -s assets/polyhaven/asphalt_track/asphalt_track_nor_gl_2k.jpg
+          test -s assets/polyhaven/asphalt_track/asphalt_track_rough_2k.jpg
+          test -s assets/polyhaven/asphalt_track/asphalt_track_ao_2k.jpg
+          test -s assets/polyhaven/sunset_jhbcentral_2k.hdr
+
+      - name: Commit assets to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/polyhaven
+          if git diff --cached --quiet; then
+            echo 'Assets already present; nothing to commit.'
+            exit 0
+          fi
+          git commit -m 'Add Poly Haven asphalt textures and sunset HDRI'
+          git push origin HEAD:graphics-upgrade-integration
